@@ -283,6 +283,25 @@ pip-audit==2.7.3
 
 ---
 
+## Testes obrigatórios
+
+A US-00 não tem lógica de aplicação — seus "testes" são as próprias verificações do CI.
+Não há dublês de teste aqui: tudo é integração real contra arquivos de configuração.
+
+| Verificação                          | Como testar                                           |
+|--------------------------------------|-------------------------------------------------------|
+| Ruff detecta erro de lint            | Introduzir linha com erro (`x=1+1` sem espaços) e rodar `ruff check` — deve falhar |
+| Ruff detecta erro de formato         | Introduzir indentação errada e rodar `ruff format --check` — deve falhar |
+| Bandit detecta vulnerabilidade       | Adicionar `subprocess.call(user_input, shell=True)` e rodar `bandit` — deve falhar |
+| ESLint detecta erro TypeScript       | Adicionar variável `any` explícita e rodar `eslint` — deve falhar |
+| `tsc --noEmit` detecta tipo errado   | Atribuir `string` a campo `number` e rodar `tsc` — deve falhar |
+| CI passa com código limpo            | PR com código válido — todos os jobs devem ficar verdes |
+| Push direto em `main` é bloqueado    | Verificar branch protection rules no GitHub após configuração |
+| Dependabot abre PR para patch        | Aguardar primeira varredura semanal ou acionar via GitHub |
+
+> Nota: estes são testes manuais de validação da configuração — não entram no `pytest`.
+> O pipeline de CI em si é o artefato testável desta US.
+
 ## Dependências com outras USs
 
 - Esta US não depende de nenhuma outra

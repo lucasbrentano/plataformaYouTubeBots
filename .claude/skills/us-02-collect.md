@@ -244,11 +244,67 @@ pages/Collect/
 
 ## Testes obrigatórios (Pytest)
 
-- Coleta bem-sucedida persiste comentários corretamente
-- Recoleta do mesmo vídeo não duplica comentários (unicidade por `comment_id`)
-- Erros da YouTube API retornam mensagem amigável ao usuário
-- Nenhum campo de resposta ou log contém o valor da API key
-- Se a coleta falhar no meio, a API key não aparece no `error_message`
+### Referência de dublês
+
+| Dublê | Quando usar                                                                    |
+|-------|--------------------------------------------------------------------------------|
+| Stub  | Simular respostas da YouTube API (sucesso, erro 403, quota, vídeo privado)     |
+| Mock  | Verificar que a API key nunca aparece em logs ou no payload de erro            |
+| Spy   | Observar chamadas ao logger sem substituí-lo completamente                     |
+| Dummy | Preencher `collected_by` (user_id) quando o foco do teste é outro             |
+| Fake  | Banco SQLite em memória para verificar persistência                            |
+
+### Casos de teste
+
+```python
+# conftest.py
+@pytest.fixture
+def stub_youtube_success(mocker):
+    """Stub: httpx retorna página de comentários válida sem chamar a API real."""
+    mocker.patch("services.youtube.httpx.AsyncClient.get", return_value=MockResponse(
+        status_code=200,
+        json={
+            "items": [{"snippet": {"topLevelComment": {"snippet": {
+                "textOriginal": "comentário", "authorDisplayName": "user1",
+                "authorChannelId": {"value": "UC123"}, "likeCount": 0,
+                "publishedAt": "2024-01-01T00:00:00Z", "updatedAt": "2024-01-01T00:00:00Z",
+            }}}}],
+            "nextPageToken": None,
+        }
+    ))
+
+@pytest.fixture
+def dummy_user_id():
+    """Dummy: user_id irrelevante para testes que focam na lógica de coleta."""
+    return uuid.uuid4()
+```
+
+**Coleta bem-sucedida persiste comentários**
+- Stub: `httpx.AsyncClient.get` retorna página válida com 3 comentários
+- Fake: banco SQLite em memória
+- Afirma `db.query(Comment).count() == 3`
+
+**Recoleta do mesmo vídeo não duplica comentários**
+- Stub: mesmo stub acima, chamado duas vezes com mesmo `video_id`
+- Dummy: `collected_by` (user_id não importa para este cenário)
+- Afirma que `COUNT` permanece 3 após a segunda coleta (unicidade por `comment_id`)
+
+**Erros da YouTube API retornam mensagem amigável**
+- Stub: `httpx.AsyncClient.get` levanta `httpx.HTTPStatusError` com status 403
+  `mocker.patch(..., side_effect=httpx.HTTPStatusError("", request=..., response=...))`
+- Afirma HTTP 400 com mensagem sem expor detalhes internos
+
+**Nenhum campo de resposta ou log contém a API key**
+- Mock: `logging.Logger.info`, `logging.Logger.error`, `logging.Logger.debug`
+  — verifica que nenhuma call recebeu a string da API key como argumento
+- Spy alternativo: `mocker.spy(logger, "info")` + `assert api_key not in str(spy.call_args_list)`
+- Afirma que o body da response não serializa o campo `api_key`
+
+**API key não aparece no `error_message` se a coleta falhar**
+- Stub: `httpx.AsyncClient.get` levanta `Exception("network error")` após primeira página
+- Fake: banco em memória
+- Afirma `collection.error_message` não contém o valor da API key
+- Afirma `collection.status == "failed"`
 
 ---
 

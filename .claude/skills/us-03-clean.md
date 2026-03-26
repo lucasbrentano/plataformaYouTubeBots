@@ -340,6 +340,82 @@ pages/Clean/
 
 ---
 
+## Testes obrigatórios (Pytest)
+
+### Referência de dublês
+
+| Dublê | Quando usar                                                                          |
+|-------|--------------------------------------------------------------------------------------|
+| Stub  | Simular retorno de APIs externas (YouTube, SocialBlade) e status de coleta           |
+| Mock  | Verificar que API keys não são logadas ou persistidas pelo critério `perfil`         |
+| Dummy | Dados de comentários irrelevantes para testar apenas a função de nomeação do dataset |
+| Fake  | Banco SQLite em memória para testar persistência do dataset                          |
+
+### Casos de teste
+
+```python
+# conftest.py
+def make_comments(users: dict[str, int]) -> list[Comment]:
+    """Factory de Dummy comments: gera N comentários por user_id para testar algoritmos."""
+    comments = []
+    for channel_id, count in users.items():
+        for i in range(count):
+            comments.append(Comment(
+                author_channel_id=channel_id,
+                author_display_name=f"User {channel_id}",
+                text_original=f"comentário {i}",
+                like_count=0,
+                published_at=datetime(2024, 1, 1, 0, i, 0),
+                updated_at=datetime(2024, 1, 1),
+            ))
+    return comments
+```
+
+**Critério `percentil`: seleciona top 30% por volume de comentários**
+- Dummy: `make_comments({"A": 10, "B": 5, "C": 3, "B2": 1, ...})` com distribuição conhecida
+- Sem dublê de banco (função pura)
+- Afirma que apenas os usuários com volume no top 30% estão no resultado
+
+**Critério `media` com remoção de outliers via IQR**
+- Dummy: comentários com distribuição que inclui outlier extremo (ex: um usuário com 1000 comentários)
+- Afirma que o outlier não distorce o threshold (média calculada sem ele)
+- Afirma que o outlier ainda pode ser selecionado se estiver acima do threshold resultante
+
+**Critério `curtos`: detecta comentários abaixo de N caracteres**
+- Dummy: comentários com `text_original` de 5, 15, 50 caracteres para o mesmo usuário
+- Sem dublê — função pura com `threshold_chars=20`
+- Afirma que usuário com maioria abaixo de 20 chars é selecionado
+
+**Critério `intervalo`: detecta postagens em rafada**
+- Dummy: comentários com `published_at` espaçados por 5s (dentro do threshold de 30s)
+- Afirma que o usuário é selecionado
+
+**Critério `perfil`: consulta YouTube API e SocialBlade**
+- Stub: `httpx.AsyncClient.get` retorna perfil sem avatar e canal recém-criado
+  `mocker.patch("services.clean.httpx.AsyncClient.get", return_value=...)`
+- Mock: `logger.info` — verifica que a API key não aparece em nenhum log
+- Afirma que o usuário com perfil suspeito é selecionado
+
+**Combinação de critérios gera dataset de interseção**
+- Dummy: comentários onde apenas 2 usuários atendem **ambos** os critérios `percentil` e `intervalo`
+- Afirma `len(selected_users) == 2`
+- Afirma nome gerado = `{video_id}_percentil_intervalo` (ordem canônica)
+
+**Nomeação de dataset segue convenção obrigatória**
+- Dummy: lista de critérios em ordem embaralhada (`["intervalo", "percentil"]`)
+- Sem dublê — função pura `build_dataset_name`
+- Afirma resultado = `"{video_id}_percentil_intervalo"` (ordem canônica, não a da entrada)
+
+**Dataset duplicado retorna 409**
+- Fake: banco em memória com dataset pré-existente de mesmo nome
+- Stub: `get_collection` retorna coleta com `status="completed"`
+- Afirma HTTP 409
+
+**Coleta não concluída retorna 409**
+- Stub: `db.get(Collection, id)` retorna objeto com `status="running"`
+- Dummy: critérios e thresholds (irrelevantes — a validação ocorre antes)
+- Afirma HTTP 409
+
 ## Dependências com outras USs
 
 - **US-02:** requer `collection_id` com `status = "completed"`

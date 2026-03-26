@@ -550,12 +550,75 @@ export function PlotlyChart({ figureJson }: { figureJson: string }) {
 
 ## Testes obrigatórios (Pytest)
 
-- `GET /dashboard/global` retorna JSON válido de figuras Plotly e KPIs corretos
-- `GET /dashboard/video` filtrado por `video_id` retorna apenas dados daquele vídeo
-- `GET /dashboard/user` retorna apenas dados do pesquisador autenticado
-- `agreement_rate` correto para fixture com consenso e divergência
-- `GET /dashboard/bots` com filtro de dataset retorna apenas comentários daquele dataset
-- Nenhum endpoint expõe `username` de outros pesquisadores nos dados de gráficos
+### Referência de dublês
+
+| Dublê | Quando usar                                                                           |
+|-------|---------------------------------------------------------------------------------------|
+| Stub  | Controlar `get_current_user` e isolar endpoints de dashboard do banco real            |
+| Mock  | Verificar que nenhuma query expõe `username` de outros pesquisadores                  |
+| Spy   | Observar quais agregações SQL foram executadas (sem substituir o banco)               |
+| Dummy | `video_id` inexistente para testar resposta com dados vazios (deve retornar zeros)    |
+| Fake  | Banco SQLite em memória pré-populado com fixture de anotações, conflitos e resoluções |
+
+### Casos de teste
+
+```python
+# conftest.py
+@pytest.fixture
+def fake_db_populated(fake_db):
+    """
+    Fake: banco pré-populado com:
+    - 2 vídeos, 3 datasets
+    - 10 comentários anotados: 6 humano, 3 bot, 1 conflito
+    - 1 conflito resolvido, 1 pendente
+    - 2 pesquisadores com anotações divergentes em 1 comentário
+    """
+    ...
+    return fake_db
+```
+
+**`GET /dashboard/global` retorna KPIs corretos e JSON Plotly válido**
+- Fake: banco pré-populado
+- Stub: `get_current_user` retorna qualquer usuário autenticado
+- Afirma `summary.total_bots == 3`, `summary.total_conflicts == 2`, etc.
+- Afirma que cada `*_chart` é JSON parseável com chaves `data` e `layout`
+
+**`GET /dashboard/video` retorna apenas dados do vídeo filtrado**
+- Fake: banco com dois vídeos distintos
+- Stub: `get_current_user` retorna usuário autenticado
+- Afirma que KPIs somam apenas os comentários/anotações do `video_id` requisitado
+
+**`GET /dashboard/user` retorna apenas dados do pesquisador autenticado**
+- Fake: banco com anotações de dois pesquisadores diferentes
+- Stub: `get_current_user` retorna pesquisador A
+- Afirma `summary.total_annotated` conta apenas as anotações do pesquisador A
+
+**`agreement_rate` calculado corretamente**
+- Fake: banco com 4 comentários — 2 em consenso, 1 em conflito, 1 com só 1 anotação
+- Spy: `mocker.spy(services.dashboard, "compute_agreement_rate")` — verifica que foi chamada e retornou o valor correto
+- Afirma `agreement_rate == 0.667` (2 consenso / 3 com 2 anotações)
+
+**`GET /dashboard/bots` com filtro de dataset retorna apenas aquele dataset**
+- Fake: banco com bots em dois datasets distintos
+- Stub: `get_current_user` retorna usuário autenticado
+- Afirma que todos os itens retornados têm `dataset_id == dataset_filtrado`
+
+**Nenhum endpoint expõe `username` de outros pesquisadores**
+- Fake: banco com dois pesquisadores nomeados
+- Stub: `get_current_user` retorna pesquisador A
+- Mock: inspeciona o JSON de todos os `*_chart` retornados
+  — afirma que o `username` do pesquisador B não aparece em nenhum campo serializado
+  `assert "maria" not in response.text`
+
+**`GET /dashboard/global` com `criteria=percentil` filtra corretamente**
+- Fake: banco com datasets gerados por critérios diferentes (`percentil`, `media`, `curtos`)
+- Stub: `get_current_user`
+- Afirma que KPIs somam apenas os datasets com `"percentil"` em `criteria_applied`
+
+**Dados ausentes retornam zeros, não 404**
+- Dummy: `video_id="video_inexistente"`
+- Stub: `get_current_user`
+- Afirma HTTP 200 com `summary.total_annotated == 0` e charts vazios parseáveis
 
 ---
 

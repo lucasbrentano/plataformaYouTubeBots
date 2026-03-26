@@ -182,13 +182,63 @@ components/
 
 ## Testes obrigatórios (Pytest)
 
-- Login com credenciais válidas retorna JWT
-- Login com credenciais inválidas retorna 401 genérico (sem indicar qual campo)
-- Rota protegida sem token retorna 401
-- `user` tentando acessar `GET /users/` retorna 403
-- `admin` criando usuário retorna 201
-- Senha não armazenada em texto plano (`hashed_password != plain_password`)
-- Token expirado retorna 401
+### Referência de dublês
+
+| Dublê   | Quando usar                                                              |
+|---------|--------------------------------------------------------------------------|
+| Stub    | Controlar o retorno de uma dependência (DB, `verify_password`)           |
+| Mock    | Verificar que uma dependência foi chamada (ex: `pwd_context.hash`)       |
+| Spy     | Observar chamadas em objeto real sem substituí-lo                        |
+| Dummy   | Preencher parâmetro obrigatório irrelevante para o cenário do teste      |
+| Fake    | Implementação simplificada funcional (ex: banco SQLite em memória)       |
+
+### Casos de teste
+
+```python
+# conftest.py — Fake: banco SQLite em memória compartilhado por todos os testes de auth
+@pytest.fixture
+def db():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        yield session
+
+# Stub: get_password_hash retorna hash fixo para não depender de bcrypt real nos testes rápidos
+@pytest.fixture
+def stub_hash(mocker):
+    mocker.patch("services.auth.get_password_hash", return_value="hashed_pw")
+    mocker.patch("services.auth.verify_password", return_value=True)
+```
+
+**Login com credenciais válidas retorna JWT**
+- Fake: banco com usuário pré-criado via fixture
+- Stub: `verify_password` retorna `True`
+- Nenhum mock de comportamento — verifica apenas o retorno HTTP 200 e presença de `access_token`
+
+**Login com credenciais inválidas retorna 401 genérico**
+- Fake: banco com usuário existente
+- Stub: `verify_password` retorna `False`
+- Afirma que a resposta não menciona "senha" nem "usuário" no corpo (sem revelar qual campo falhou)
+
+**Rota protegida sem token retorna 401**
+- Dummy: corpo da requisição vazio ou irrelevante — o que importa é a ausência do header `Authorization`
+- Sem dublê de banco (a requisição não chega ao service)
+
+**`user` tentando acessar `GET /users/` retorna 403**
+- Stub: `get_current_user` retorna objeto `User` com `role="user"` (sem chamar o banco real)
+- `mocker.patch("routers.users.get_current_user", return_value=fake_user)`
+
+**`admin` criando usuário retorna 201**
+- Stub: `get_current_user` retorna `User` com `role="admin"`
+- Fake: banco em memória para persistir o novo usuário criado
+
+**Senha não armazenada em texto plano**
+- Mock: `pwd_context.hash` — verifica que foi chamado e que `hashed_password != plain_password`
+- `mock_hash.assert_called_once_with(plain_password)`
+
+**Token expirado retorna 401**
+- Stub: `jose.jwt.decode` levanta `ExpiredSignatureError`
+- `mocker.patch("services.auth.jwt.decode", side_effect=ExpiredSignatureError)`
 
 ---
 

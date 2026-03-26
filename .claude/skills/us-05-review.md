@@ -276,11 +276,68 @@ pages/Review/
 
 ## Testes obrigatórios (Pytest)
 
-- Resolução de conflito cria registro em `resolutions` com admin e timestamp
-- Tentativa de resolver conflito já resolvido retorna 409
-- `user` tentando acessar `/review/*` retorna 403
-- `GET /review/bots` retorna usuários com pelo menos uma anotação `bot`
-- Usuário com consenso `bot`+`bot` aparece em `/review/bots`, não em `/review/conflicts`
+### Referência de dublês
+
+| Dublê | Quando usar                                                                   |
+|-------|-------------------------------------------------------------------------------|
+| Stub  | Controlar `get_current_user` (admin vs user) e estado do conflito no banco    |
+| Mock  | Verificar que `Resolution` foi inserida exatamente uma vez                    |
+| Dummy | `conflict_id` inválido para testar 404 sem precisar de banco populado         |
+| Fake  | Banco SQLite em memória para testar o fluxo completo de resolução             |
+
+### Casos de teste
+
+```python
+# conftest.py
+@pytest.fixture
+def stub_admin(mocker):
+    """Stub: get_current_user retorna admin."""
+    admin = User(id=uuid.uuid4(), username="carlos", role="admin")
+    mocker.patch("routers.review.get_current_user", return_value=admin)
+    return admin
+
+@pytest.fixture
+def stub_user(mocker):
+    """Stub: get_current_user retorna pesquisador sem permissão de admin."""
+    user = User(id=uuid.uuid4(), username="joao", role="user")
+    mocker.patch("routers.review.get_current_user", return_value=user)
+    return user
+
+@pytest.fixture
+def fake_db_with_conflict(fake_db):
+    """Fake: banco em memória pré-populado com um conflito pendente."""
+    # insere dois comentários, duas anotações divergentes e um AnnotationConflict
+    ...
+    return fake_db
+```
+
+**Resolução cria registro em `resolutions` com admin e timestamp**
+- Stub: `get_current_user` retorna admin
+- Fake: banco com conflito `pending` pré-inserido
+- Mock: `db.add` — verifica que foi chamado com instância de `Resolution`
+  `mock_add.assert_called_once()` filtrando por tipo `Resolution`
+- Afirma `resolution.resolved_by == admin.id` e `resolution.resolved_at` não é None
+
+**Conflito já resolvido retorna 409**
+- Stub: `get_current_user` retorna admin
+- Fake: banco com `AnnotationConflict.status = "resolved"`
+- Afirma HTTP 409 sem criar novo registro em `resolutions`
+
+**`user` tentando acessar `/review/*` retorna 403**
+- Stub: `get_current_user` retorna `User` com `role="user"`
+- Dummy: `conflict_id` = `uuid.uuid4()` (não precisa existir — a checagem de role ocorre antes)
+- Afirma HTTP 403
+
+**`GET /review/bots` retorna comentários com pelo menos uma anotação `bot`**
+- Fake: banco com 3 comentários — (A) dois `bot`, (B) um `bot` + um `humano`, (C) dois `humano`
+- Stub: `get_current_user` retorna admin
+- Afirma que A e B aparecem no resultado, C não aparece
+
+**Consenso `bot`+`bot` aparece em `/review/bots`, não em `/review/conflicts`**
+- Fake: banco com comentário anotado como `bot` por dois pesquisadores (sem `AnnotationConflict`)
+- Stub: `get_current_user` retorna admin
+- Afirma comentário presente em `GET /review/bots`
+- Afirma comentário **ausente** em `GET /review/conflicts`
 
 ---
 

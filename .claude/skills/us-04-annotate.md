@@ -332,12 +332,78 @@ pages/Annotate/
 
 ## Testes obrigatórios (Pytest)
 
-- Anotação `bot` sem `justificativa` retorna 422
-- Dois pesquisadores com labels iguais no mesmo comentário → sem conflito
-- Dois pesquisadores com labels diferentes no mesmo comentário → `AnnotationConflict` criado
-- Reannotation altera o label e `updated_at`, mantém `annotation_id`
-- Importação CSV faz upsert sem duplicar
-- Export retorna apenas anotações do pesquisador autenticado
+### Referência de dublês
+
+| Dublê | Quando usar                                                                        |
+|-------|------------------------------------------------------------------------------------|
+| Stub  | Controlar `get_current_user` (retornar pesquisador A ou B conforme o cenário)      |
+| Mock  | Verificar que o conflito foi criado exatamente uma vez (sem criar duplicatas)      |
+| Spy   | Observar se `db.add` foi chamado com um `AnnotationConflict` (sem substituir o DB) |
+| Dummy | `entry_id` / `comment_db_id` irrelevante quando o teste foca na validação Pydantic |
+| Fake  | Banco SQLite em memória para testar upsert e detecção de conflito end-to-end       |
+
+### Casos de teste
+
+```python
+# conftest.py
+@pytest.fixture
+def fake_db():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        yield session
+
+@pytest.fixture
+def stub_user_a(mocker):
+    """Stub: get_current_user retorna pesquisador A."""
+    user = User(id=uuid.uuid4(), username="joao", role="user")
+    mocker.patch("routers.annotate.get_current_user", return_value=user)
+    return user
+
+@pytest.fixture
+def stub_user_b(mocker):
+    """Stub: get_current_user retorna pesquisador B (para simular segundo anotador)."""
+    user = User(id=uuid.uuid4(), username="maria", role="user")
+    mocker.patch("routers.annotate.get_current_user", return_value=user)
+    return user
+```
+
+**`bot` sem `justificativa` retorna 422**
+- Dummy: `comment_db_id` = `uuid.uuid4()` (não precisa existir no banco — a validação é Pydantic)
+- Sem dublê de banco (erro ocorre antes de chegar ao service)
+- Afirma HTTP 422 com mensagem sobre `justificativa`
+
+**Dois pesquisadores com labels iguais → sem conflito**
+- Stub: `get_current_user` alternado entre `stub_user_a` e `stub_user_b`
+- Fake: banco em memória com comentário pré-inserido
+- Afirma `db.query(AnnotationConflict).count() == 0`
+
+**Dois pesquisadores com labels diferentes → `AnnotationConflict` criado**
+- Stub: `get_current_user` alterna entre usuário A (label `bot`) e usuário B (label `humano`)
+- Fake: banco em memória
+- Spy: `mocker.spy(db, "add")` — verifica que `add` foi chamado com instância de `AnnotationConflict`
+- Afirma `conflict_created == True` na resposta e `db.query(AnnotationConflict).count() == 1`
+
+**Reannotation altera label e `updated_at`, mantém `annotation_id`**
+- Stub: `get_current_user` retorna mesmo usuário nas duas chamadas
+- Fake: banco em memória
+- Guarda `annotation_id` da primeira chamada; afirma que é o mesmo após a segunda
+- Afirma `label` e `updated_at` foram alterados
+
+**Segundo conflito no mesmo comentário não cria duplicata**
+- Stub: dois usuários divergem, depois um reanota mantendo divergência
+- Mock: `db.add` — verifica que foi chamado com `AnnotationConflict` apenas uma vez no total
+  `mock_add.assert_called_once()` para instâncias de `AnnotationConflict`
+
+**Importação CSV faz upsert sem duplicar**
+- Fake: banco em memória com algumas anotações pré-existentes
+- Stub: `get_current_user` retorna usuário autenticado
+- Afirma que `COUNT(annotations)` não aumenta para linhas já existentes
+
+**Export retorna apenas anotações do pesquisador autenticado**
+- Stub: `get_current_user` retorna usuário A
+- Fake: banco com anotações de usuário A e usuário B
+- Afirma que todas as linhas do CSV têm `annotator_id == user_a.id`
 
 ---
 
