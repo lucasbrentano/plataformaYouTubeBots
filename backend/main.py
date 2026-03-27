@@ -1,16 +1,20 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import Base, engine
 from routers import auth, users
 
-Base.metadata.create_all(bind=engine)
+# Em produção, definir CORS_ORIGINS no Vercel Dashboard:
+#   CORS_ORIGINS=https://seu-frontend.vercel.app
+# Em desenvolvimento, o padrão é localhost:3000
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
 
 app = FastAPI(title="Plataforma YouTube Bots API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
