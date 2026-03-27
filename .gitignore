@@ -67,6 +67,9 @@ htmlcov/
 # Alembic
 # (manter alembic/versions no git — não ignorar)
 
+# SQLite (desenvolvimento local)
+*.db
+
 # Secrets
 *.pem
 *.key
