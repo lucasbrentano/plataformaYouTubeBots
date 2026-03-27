@@ -182,6 +182,9 @@ Arquivo `.github/dependabot.yml` configurado para:
 
 ## Regras de negócio críticas
 
+- Remoção de usuário é sempre **soft-delete** (`is_active = False`) — nunca DELETE físico, para preservar anotações de quem sai do laboratório
+- Admin pode reativar usuário inativo via `POST /users/{id}/reactivate`
+- `GET /users/` retorna todos os usuários (ativos e inativos); frontend ordena ativos primeiro
 - Conflito de anotação ocorre automaticamente quando dois anotadores divergem — sem resolução por maioria
 - Toda divergência exige decisão explícita do admin via US-05
 - Classificações possíveis na anotação: `bot` ou `humano` (sem `incerto`)

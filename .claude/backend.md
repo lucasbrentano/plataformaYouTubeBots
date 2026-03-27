@@ -131,6 +131,31 @@ def test_papel_insuficiente_retorna_403(client, auth_headers): ...
 def test_payload_invalido_retorna_422(client, auth_headers): ...
 ```
 
+## Soft-delete
+
+Remoção de entidades que possuem dados associados (ex: `User` com anotações) usa soft-delete em vez de `DELETE` físico.
+
+```python
+# service: desativar
+def deactivate_user(db, user_id, requesting_user_id):
+    user.is_active = False
+    db.commit()
+
+# service: reativar
+def reactivate_user(db, user_id):
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+# router: DELETE semântico + endpoint dedicado para reativação
+@router.delete("/{id}", status_code=204)       # desativa
+@router.post("/{id}/reactivate", response_model=UserOut)  # reativa
+```
+
+- `GET /users/` retorna todos (ativos e inativos) — filtragem fica no frontend
+- Testes devem cobrir: desativar, reativar, ciclo completo e idempotência (reativar já ativo → 409)
+
 ## Migrations
 
 ```bash
