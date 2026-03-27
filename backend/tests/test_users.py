@@ -29,7 +29,7 @@ def test_admin_can_create_user(client, db, fake_admin):
 
     response = client.post(
         "/users/",
-        json={"username": "newuser", "password": "password123", "role": "user"},
+        json={"username": "newuser", "password": "password123"},
     )
     assert response.status_code == 201
     data = response.json()
@@ -53,7 +53,7 @@ def test_create_user_duplicate_username_returns_409(client, db, fake_admin):
 
     response = client.post(
         "/users/",
-        json={"username": "duplicate", "password": "password123", "role": "user"},
+        json={"username": "duplicate", "password": "password123"},
     )
     assert response.status_code == 409
 
@@ -80,6 +80,6 @@ def test_create_user_short_password_returns_422(client, fake_admin):
 
     response = client.post(
         "/users/",
-        json={"username": "newuser", "password": "short", "role": "user"},
+        json={"username": "newuser", "password": "short"},
     )
     assert response.status_code == 422

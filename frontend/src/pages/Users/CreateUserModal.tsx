@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { UserCreate } from "../../api/auth";
+import { UserCreate } from "../../api/users";
 import styles from "./CreateUserModal.module.css";
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
 export function CreateUserModal({ onClose, onCreate }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "user">("user");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +18,7 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
     setError(null);
     setLoading(true);
     try {
-      await onCreate({ username, password, role });
+      await onCreate({ username, password });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar usuário");
@@ -32,7 +31,7 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Criar Usuário</h2>
+          <h2 className={styles.modalTitle}>Criar Pesquisador</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
             ✕
           </button>
@@ -58,7 +57,7 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" htmlFor="new-password">
                 Senha
               </label>
@@ -74,21 +73,6 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="new-role">
-                Papel
-              </label>
-              <select
-                id="new-role"
-                className="form-select"
-                value={role}
-                onChange={(e) => setRole(e.target.value as "admin" | "user")}
-              >
-                <option value="user">user — coleta, limpeza, anotação</option>
-                <option value="admin">admin — acesso total</option>
-              </select>
-            </div>
-
             {error && <div className="alert alert-error" style={{ marginTop: 16 }}>{error}</div>}
           </div>
 
@@ -97,7 +81,7 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Criando…" : "Criar Usuário"}
+              {loading ? "Criando…" : "Criar Pesquisador"}
             </button>
           </div>
         </form>

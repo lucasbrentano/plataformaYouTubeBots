@@ -55,7 +55,7 @@ export function UsersPage() {
               <p className={styles.pageDesc}>Gerencie as contas de acesso à plataforma.</p>
             </div>
             <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-              + Criar Usuário
+              + Criar Pesquisador
             </button>
           </div>
 
