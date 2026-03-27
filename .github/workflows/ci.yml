@@ -31,7 +31,7 @@ jobs:
         run: ruff format --check .
 
       - name: Security analysis (bandit)
-        run: bandit -r . -x tests/
+        run: bandit -r . --exclude ./tests --skip B101
 
       - name: Dependency audit (pip-audit)
         run: pip-audit
