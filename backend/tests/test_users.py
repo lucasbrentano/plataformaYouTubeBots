@@ -96,7 +96,9 @@ def test_create_user_invalid_username_returns_422(client, fake_admin):
             "/users/",
             json={"username": bad_username, "name": "Teste", "password": "password123"},
         )
-        assert response.status_code == 422, f"esperado 422 para username={bad_username!r}"
+        assert (
+            response.status_code == 422
+        ), f"esperado 422 para username={bad_username!r}"
 
 
 def test_create_user_missing_name_returns_422(client, fake_admin):
