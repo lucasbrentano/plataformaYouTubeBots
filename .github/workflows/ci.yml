@@ -54,6 +54,9 @@ jobs:
         # pip-audit → rich → pygments, sem impacto para a API web.
         run: pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539
 
+      - name: Create test database
+        run: PGPASSWORD=davint psql -h localhost -U davint -d davint -c "CREATE DATABASE davint_test;"
+
       - name: Tests with coverage
         run: pytest --cov=. --cov-fail-under=80
         env:
