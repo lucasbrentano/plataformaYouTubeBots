@@ -8,6 +8,7 @@ export interface CollectionStarted {
   next_page_token: string | null;
   channel_dates_failed: boolean | null;
   enrich_status: string | null;
+  duration_seconds: number | null;
   created_at: string;
 }
 
@@ -18,6 +19,7 @@ export interface CollectionStatus {
   total_comments: number | null;
   channel_dates_failed: boolean | null;
   enrich_status: string | null;
+  duration_seconds: number | null;
   collected_at: string | null;
   collected_by: string | null;
 }
@@ -30,6 +32,7 @@ export interface CollectionSummary {
   total_comments: number | null;
   channel_dates_failed: boolean | null;
   enrich_status: string | null;
+  duration_seconds: number | null;
   collected_at: string | null;
 }
 

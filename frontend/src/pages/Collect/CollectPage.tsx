@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collectApi, ImportRequest } from "../../api/collect";
 import { PageHeader } from "../../components/PageHeader";
@@ -9,6 +9,34 @@ import { useAuthContext } from "../../contexts/AuthContext";
 import { useCollect } from "./useCollect";
 
 type Tab = "collect" | "import";
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
+}
+
+function useElapsed(startIso: string | null, running: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!running || !startIso) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    const start = new Date(startIso).getTime();
+    const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
+    tick();
+    intervalRef.current = setInterval(tick, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [running, startIso]);
+
+  return elapsed;
+}
 
 function getDisplayStatus(
   status: string,
@@ -78,6 +106,8 @@ export function CollectPage() {
   const isFullyDone =
     active?.status === "completed" &&
     (enrichDone || active?.enrich_status === "done" || active?.enrich_status === null);
+
+  const elapsed = useElapsed(active?.created_at ?? null, isActivelyPolling);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -425,6 +455,7 @@ export function CollectPage() {
                     {active.total_comments != null && active.total_comments > 0 && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         {active.total_comments.toLocaleString("pt-BR")} coletados até agora
+                        {elapsed > 0 && ` · ${formatDuration(elapsed)}`}
                       </p>
                     )}
                   </div>
@@ -514,6 +545,9 @@ export function CollectPage() {
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold text-gray-800">{active.total_comments ?? 0}</span>{" "}
                   comentários coletados. Buscando dados complementares...
+                  {elapsed > 0 && (
+                    <span className="text-xs text-gray-400 ml-2">{formatDuration(elapsed)}</span>
+                  )}
                 </p>
                 <div className="flex items-center gap-3">
                   <svg
@@ -620,6 +654,11 @@ export function CollectPage() {
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold text-gray-800">{active.total_comments ?? 0}</span>{" "}
                   comentários coletados com sucesso.
+                  {active.duration_seconds != null && (
+                    <span className="text-xs text-gray-400 ml-2">
+                      Duração: {formatDuration(active.duration_seconds)}
+                    </span>
+                  )}
                 </p>
                 {active.channel_dates_failed === true && (
                   <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -688,6 +727,9 @@ export function CollectPage() {
                       Comentários
                     </th>
                     <th className="text-left py-2.5 pr-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                      Duração
+                    </th>
+                    <th className="text-left py-2.5 pr-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                       Concluída em
                     </th>
                     <th className="text-left py-2.5 pr-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">
@@ -720,6 +762,9 @@ export function CollectPage() {
                       </td>
                       <td className="py-3 pr-4 text-sm text-gray-600">
                         {col.total_comments ?? "—"}
+                      </td>
+                      <td className="py-3 pr-4 text-sm text-gray-500">
+                        {col.duration_seconds != null ? formatDuration(col.duration_seconds) : "—"}
                       </td>
                       <td className="py-3 pr-4 text-sm text-gray-500">
                         {col.collected_at

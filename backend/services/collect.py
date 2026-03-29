@@ -497,6 +497,9 @@ async def enrich_collection(
         collection.enrich_status = "done"
         if collection.channel_dates_failed is None:
             collection.channel_dates_failed = False
+        if collection.created_at:
+            delta = datetime.now(UTC) - collection.created_at.replace(tzinfo=UTC)
+            collection.duration_seconds = int(delta.total_seconds())
         db.commit()
         return {
             "phase": "channels",
