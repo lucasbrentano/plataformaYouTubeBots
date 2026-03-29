@@ -77,6 +77,15 @@ export function LoginPage() {
           Acesso restrito — conta criada pelo administrador.
         </p>
       </div>
+
+      <p className="mt-6 text-[11px] text-gray-400 text-center max-w-sm">
+        Desenvolvido pelo{" "}
+        <span className="font-semibold">
+          DaVint Lab (Data Visualization and Interaction) — PUCRS
+        </span>{" "}
+        com financiamento do <span className="font-semibold">CNPq</span>. Desenvolvido com auxílio
+        da ferramenta de IA <span className="font-semibold">Claude</span> (Anthropic).
+      </p>
     </div>
   );
 }
