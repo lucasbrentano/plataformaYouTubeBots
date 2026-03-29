@@ -17,7 +17,7 @@ interface CollectState {
   collections: CollectionSummary[];
   isActivelyPolling: boolean;
   // Enrich progress
-  enrichPhase: "replies" | "channels" | null;
+  enrichPhase: "video" | "replies" | "channels" | null;
   enrichRemaining: number;
   enrichDone: boolean;
 }

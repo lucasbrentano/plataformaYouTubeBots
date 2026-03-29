@@ -34,7 +34,7 @@ export interface CollectionSummary {
 }
 
 export interface EnrichResponse {
-  phase: "replies" | "channels";
+  phase: "video" | "replies" | "channels";
   processed: number;
   remaining: number;
   done: boolean;

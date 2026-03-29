@@ -74,7 +74,7 @@ class EnrichRequest(BaseModel):
 
 
 class EnrichResponse(BaseModel):
-    phase: Literal["replies", "channels"]
+    phase: Literal["video", "replies", "channels"]
     processed: int
     remaining: int
     done: bool

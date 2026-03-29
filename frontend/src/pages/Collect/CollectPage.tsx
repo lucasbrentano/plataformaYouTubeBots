@@ -13,13 +13,14 @@ type Tab = "collect" | "import";
 function getDisplayStatus(
   status: string,
   enrichStatus: string | null,
-  enrichPhase: "replies" | "channels" | null,
+  enrichPhase: "video" | "replies" | "channels" | null,
   enrichDone: boolean
 ): string {
   if (status === "completed") {
     if (enrichDone || enrichStatus === "done" || enrichStatus === null) {
       return "completed";
     }
+    if (enrichPhase === "video") return "enriching_video";
     if (enrichPhase === "replies") return "enriching_replies";
     if (enrichPhase === "channels") return "enriching_channels";
     return "enriching";
@@ -537,11 +538,13 @@ export function CollectPage() {
                   </svg>
                   <div>
                     <p className="text-sm font-medium text-gray-700">
-                      {enrichPhase === "replies"
-                        ? "Buscando respostas restantes..."
-                        : "Obtendo datas de criação dos canais..."}
+                      {enrichPhase === "video"
+                        ? "Obtendo metadados do vídeo..."
+                        : enrichPhase === "replies"
+                          ? "Buscando respostas restantes..."
+                          : "Obtendo datas de criação dos canais..."}
                     </p>
-                    {enrichRemaining > 0 && (
+                    {enrichRemaining > 0 && enrichPhase !== "video" && (
                       <p className="text-xs text-gray-400 mt-0.5">
                         {enrichRemaining} {enrichPhase === "replies" ? "threads" : "autores"}{" "}
                         restantes
