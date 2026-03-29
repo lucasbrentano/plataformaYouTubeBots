@@ -74,3 +74,89 @@ def test_password_not_stored_in_plain_text(mocker):
 
     mock_hash.assert_called_once_with(plain)
     assert result != plain
+
+
+# ---------------------------------------------------------------------------
+# Testes de refresh token
+# ---------------------------------------------------------------------------
+
+
+def test_login_retorna_refresh_token(client, db):
+    """Login deve retornar access_token e refresh_token."""
+    user = User(
+        username="refreshuser",
+        name="Refresh Teste",
+        hashed_password=get_password_hash("password123"),
+        role="user",
+    )
+    db.add(user)
+    db.commit()
+
+    response = client.post(
+        "/auth/login",
+        json={"username": "refreshuser", "password": "password123"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+
+
+def test_refresh_retorna_novos_tokens(client, db):
+    """POST /auth/refresh com refresh_token válido retorna novos tokens."""
+    user = User(
+        username="refreshuser2",
+        name="Refresh Teste 2",
+        hashed_password=get_password_hash("password123"),
+        role="user",
+    )
+    db.add(user)
+    db.commit()
+
+    login_resp = client.post(
+        "/auth/login",
+        json={"username": "refreshuser2", "password": "password123"},
+    )
+    refresh_token = login_resp.json()["refresh_token"]
+
+    refresh_resp = client.post(
+        "/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert refresh_resp.status_code == 200
+    data = refresh_resp.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+
+
+def test_refresh_token_invalido_retorna_401(client):
+    """POST /auth/refresh com token inválido retorna 401."""
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": "token_invalido"},
+    )
+    assert response.status_code == 401
+
+
+def test_refresh_com_access_token_retorna_401(client, db):
+    """POST /auth/refresh com access_token (tipo errado) retorna 401."""
+    user = User(
+        username="refreshuser3",
+        name="Refresh Teste 3",
+        hashed_password=get_password_hash("password123"),
+        role="user",
+    )
+    db.add(user)
+    db.commit()
+
+    login_resp = client.post(
+        "/auth/login",
+        json={"username": "refreshuser3", "password": "password123"},
+    )
+    access_token = login_resp.json()["access_token"]
+
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": access_token},
+    )
+    assert response.status_code == 401
