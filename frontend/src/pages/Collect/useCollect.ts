@@ -368,6 +368,24 @@ export function useCollect() {
       if (!token) return;
       try {
         await collectApi.delete(collectionId, token);
+        // Se a coleta ativa é a que foi deletada, limpar tudo
+        setState((s) => {
+          if (s.active?.collection_id === collectionId) {
+            stopAll();
+            sessionStorage.removeItem(STORAGE_KEY);
+            apiKeyRef.current = "";
+            return {
+              ...s,
+              active: null,
+              error: null,
+              isActivelyPolling: false,
+              enrichPhase: null,
+              enrichRemaining: 0,
+              enrichDone: false,
+            };
+          }
+          return s;
+        });
         void loadCollections();
       } catch (err) {
         setState((s) => ({
