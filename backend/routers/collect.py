@@ -15,12 +15,15 @@ from schemas.collect import (
     CollectionSummary,
     CollectNextPageRequest,
     CollectRequest,
+    EnrichRequest,
+    EnrichResponse,
     ImportRequest,
 )
 from services.auth import get_current_user
 from services.collect import (
     collect_next_page,
     delete_collection,
+    enrich_collection,
     export_comments,
     get_collection_status,
     import_collection,
@@ -38,6 +41,7 @@ def _to_started(collection, next_page_token: str | None) -> CollectionStarted:
         status=collection.status,
         total_comments=collection.total_comments,
         next_page_token=next_page_token,
+        enrich_status=collection.enrich_status,
         created_at=collection.created_at,
     )
 
@@ -50,6 +54,7 @@ def _to_status(collection, username: str) -> CollectionStatus:
         status=collection.status,
         total_comments=collection.total_comments,
         channel_dates_failed=collection.channel_dates_failed,
+        enrich_status=collection.enrich_status,
         collected_at=collection.completed_at,
         collected_by=username,
     )
@@ -63,6 +68,7 @@ def _to_summary(collection) -> CollectionSummary:
         status=collection.status,
         total_comments=collection.total_comments,
         channel_dates_failed=collection.channel_dates_failed,
+        enrich_status=collection.enrich_status,
         collected_at=collection.completed_at,
     )
 
@@ -97,6 +103,22 @@ def import_endpoint(
 ):
     collection = import_collection(db, payload, current_user.id)
     return _to_started(collection, None)
+
+
+@router.post("/{collection_id}/enrich", response_model=EnrichResponse)
+async def enrich(
+    collection_id: uuid.UUID,
+    payload: EnrichRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await enrich_collection(
+        db,
+        collection_id,
+        payload.api_key.get_secret_value(),
+        current_user.id,
+    )
+    return EnrichResponse(**result)
 
 
 @router.get("/status", response_model=CollectionStatus)
