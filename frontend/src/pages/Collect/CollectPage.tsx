@@ -10,6 +10,23 @@ import { useCollect } from "./useCollect";
 
 type Tab = "collect" | "import";
 
+function getDisplayStatus(
+  status: string,
+  enrichStatus: string | null,
+  enrichPhase: "replies" | "channels" | null,
+  enrichDone: boolean
+): string {
+  if (status === "completed") {
+    if (enrichDone || enrichStatus === "done" || enrichStatus === null) {
+      return "completed";
+    }
+    if (enrichPhase === "replies") return "enriching_replies";
+    if (enrichPhase === "channels") return "enriching_channels";
+    return "enriching";
+  }
+  return status;
+}
+
 export function CollectPage() {
   const { token } = useAuthContext();
   const navigate = useNavigate();
@@ -140,7 +157,7 @@ export function CollectPage() {
       <PageHeader breadcrumbs={[{ label: "Início", to: "/" }, { label: "Coletar Comentários" }]} />
 
       {/* Main */}
-      <main className="flex-1 px-8 py-9 max-w-3xl w-full mx-auto">
+      <main className="flex-1 px-8 py-9 max-w-6xl w-full mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800 tracking-tight mb-1">
             Coletar Comentários
@@ -368,7 +385,14 @@ export function CollectPage() {
                 </p>
                 <p className="text-base font-mono font-semibold text-gray-800">{active.video_id}</p>
               </div>
-              <StatusBadge status={active.status} />
+              <StatusBadge
+                status={getDisplayStatus(
+                  active.status,
+                  active.enrich_status,
+                  enrichPhase,
+                  enrichDone
+                )}
+              />
             </div>
 
             {/* Coletando ativamente */}
@@ -663,9 +687,10 @@ export function CollectPage() {
                     <th className="text-left py-2.5 pr-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                       Concluída em
                     </th>
-                    <th className="text-left py-2.5 pr-6 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                      Ações
+                    <th className="text-left py-2.5 pr-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                      Exportar
                     </th>
+                    <th className="text-right py-2.5 pr-6 text-[11px] font-bold uppercase tracking-wider text-gray-400"></th>
                   </tr>
                 </thead>
                 <tbody className="px-6">
@@ -680,7 +705,15 @@ export function CollectPage() {
                         <p className="text-xs font-mono text-gray-400">{col.video_id}</p>
                       </td>
                       <td className="py-3 pr-4">
-                        <StatusBadge status={col.status} size="sm" />
+                        <StatusBadge
+                          status={getDisplayStatus(
+                            col.status,
+                            col.enrich_status,
+                            null,
+                            col.enrich_status === "done" || col.enrich_status === null
+                          )}
+                          size="sm"
+                        />
                       </td>
                       <td className="py-3 pr-4 text-sm text-gray-600">
                         {col.total_comments ?? "—"}
@@ -692,7 +725,7 @@ export function CollectPage() {
                             })
                           : "—"}
                       </td>
-                      <td className="py-3 pr-6">
+                      <td className="py-3 pr-4">
                         <div className="flex items-center gap-3">
                           {col.status === "completed" &&
                             (downloadState?.id === col.collection_id ? (
@@ -723,36 +756,37 @@ export function CollectPage() {
                                 </button>
                               </>
                             ))}
-                          {col.status !== "running" &&
-                            col.collection_id !== active?.collection_id && (
-                              <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Deletar a coleta "${col.video_title ?? col.video_id}"?\n\nEsta ação remove todos os comentários e não pode ser desfeita.`
-                                    )
-                                  ) {
-                                    void deleteCollection(col.collection_id);
-                                  }
-                                }}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 16 16"
-                                  fill="currentColor"
-                                  className="w-3.5 h-3.5"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                Deletar
-                              </button>
-                            )}
                         </div>
+                      </td>
+                      <td className="py-3 pr-6 text-right">
+                        {col.status !== "running" &&
+                          col.collection_id !== active?.collection_id && (
+                            <button
+                              className="text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `Deletar a coleta "${col.video_title ?? col.video_id}"?\n\nEsta ação remove todos os comentários e não pode ser desfeita.`
+                                  )
+                                ) {
+                                  void deleteCollection(col.collection_id);
+                                }
+                              }}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="w-4 h-4"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          )}
                       </td>
                     </tr>
                   ))}
