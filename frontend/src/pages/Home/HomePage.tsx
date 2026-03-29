@@ -327,6 +327,17 @@ export function HomePage() {
         )}
       </main>
 
+      <footer className="py-4 text-center">
+        <p className="text-[11px] text-gray-400">
+          Desenvolvido pelo{" "}
+          <span className="font-semibold">
+            DaVint Lab (Data Visualization and Interaction) — PUCRS
+          </span>{" "}
+          com financiamento do <span className="font-semibold">CNPq</span>. Desenvolvido com auxílio
+          da ferramenta de IA <span className="font-semibold">Claude</span> (Anthropic).
+        </p>
+      </footer>
+
       {showChangePassword && (
         <ChangePasswordModal
           onClose={() => setShowChangePassword(false)}
