@@ -28,8 +28,8 @@ export function ReviewPage() {
     downloadExport,
   } = useReview();
 
-  const conflicts = conflictsData?.items ?? [];
-  const bots = botsData?.items ?? [];
+  const conflicts = useMemo(() => conflictsData?.items ?? [], [conflictsData]);
+  const bots = useMemo(() => botsData?.items ?? [], [botsData]);
 
   const [tab, setTab] = useState<Tab>("conflicts");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
