@@ -41,7 +41,6 @@ export function ReviewPage() {
   const [selectedBot, setSelectedBot] = useState<BotCommentItem | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importParseError, setImportParseError] = useState<string | null>(null);
-  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Derive dataset list from loaded data
   const datasets = useMemo(() => {
@@ -129,10 +128,7 @@ export function ReviewPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <PageHeader
-        breadcrumbs={[{ label: "Início", to: "/" }, { label: "Revisar Conflitos" }]}
-        onChangePassword={() => setShowChangePassword(true)}
-      />
+      <PageHeader breadcrumbs={[{ label: "Início", to: "/" }, { label: "Revisar Conflitos" }]} />
 
       <main className="flex-1 px-8 py-9 max-w-6xl w-full mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 tracking-tight mb-1">Revisar Conflitos</h1>
@@ -326,10 +322,6 @@ export function ReviewPage() {
             setSelectedConflict(id);
           }}
         />
-      )}
-
-      {showChangePassword && (
-        <ChangePasswordPlaceholder onClose={() => setShowChangePassword(false)} />
       )}
     </div>
   );
@@ -1080,27 +1072,6 @@ function Pagination({
           onClick={() => onPageChange(page + 1)}
         >
           Próxima
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ChangePasswordPlaceholder({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-sm text-gray-600">
-          Alterar senha — funcionalidade disponível na página inicial.
-        </p>
-        <button className="btn btn-ghost mt-3" onClick={onClose}>
-          Fechar
         </button>
       </div>
     </div>
