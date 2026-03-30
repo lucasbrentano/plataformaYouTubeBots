@@ -104,6 +104,37 @@ def create(
     return svc.create(payload, current_user)
 ```
 
+## Import/Export simétrico
+
+Toda US que produz dados deve ter endpoints de export e import com **formato idêntico**:
+
+```python
+# Export — streaming com yield_per para não estourar memória
+@router.get("/{id}/download")
+def download(id: uuid.UUID, fmt: str = Query(default="json", alias="format"), ...):
+    def json_stream():
+        yield '{\n  "metadata": ' + json.dumps(meta) + ',\n'
+        yield '  "items": [\n'
+        first = True
+        for item in db.query(Model).filter(...).yield_per(500):
+            prefix = "    " if first else ",\n    "
+            first = False
+            yield prefix + json.dumps(to_dict(item), ensure_ascii=False)
+        yield "\n  ]\n}\n"
+    return StreamingResponse(json_stream(), media_type="application/json", ...)
+
+# Import — aceita o mesmo JSON do export
+@router.post("/import", status_code=201, response_model=ResponseModel)
+def import_endpoint(payload: ImportSchema, ...):
+    ...
+```
+
+### Regras
+- O JSON de import deve ser aceito sem modificação a partir do export
+- Exports usam `yield_per(500)` + `StreamingResponse` com gerador — nunca `.all()`
+- Import de arquivos grandes usa chunks paginados (`/import-chunk`) para respeitar o limite de 4.5MB do Vercel
+- Import de etapas posteriores (US-03+) localiza dados relacionados por `video_id`, sem exigir IDs internos
+
 ## API keys externas
 
 ```python

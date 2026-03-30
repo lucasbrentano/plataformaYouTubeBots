@@ -407,6 +407,43 @@ def stub_user_b(mocker):
 
 ---
 
+## Import/Export simétrico
+
+### Export — `GET /annotate/export`
+
+Exporta anotações do pesquisador autenticado em JSON (reimportável) ou CSV (análise).
+
+**JSON (formato simétrico — aceito pelo import):**
+```json
+{
+  "dataset_id": "uuid",
+  "dataset_name": "dQw4w9_percentil",
+  "video_id": "dQw4w9WgXcQ",
+  "annotator": "João Silva",
+  "annotations": [
+    {
+      "comment_db_id": "uuid",
+      "author_channel_id": "UC...",
+      "text_original": "comentário...",
+      "label": "bot",
+      "justificativa": "Texto repetido.",
+      "annotated_at": "2024-01-01T00:05:00Z"
+    }
+  ]
+}
+```
+
+### Import — `POST /annotate/import`
+
+Aceita o **mesmo formato JSON** do export — simetria total.
+Faz upsert: atualiza anotações existentes, cria novas, sem duplicar.
+Resolve `dataset_id` pelo `video_id` + `dataset_name` se necessário.
+
+**Frontend:** aba "Importar JSON" na AnnotatePage, separada de "Anotar" (padrão de tabs obrigatório).
+
+> **Nota:** o import CSV legado (`POST /annotate/import` com `multipart/form-data`) continua
+> funcionando para compatibilidade, mas o JSON simétrico é o formato preferido.
+
 ## Dependências com outras USs
 
 - **US-03:** requer `dataset_id` para listar os usuários (`dataset_entries`) cujos comentários serão anotados

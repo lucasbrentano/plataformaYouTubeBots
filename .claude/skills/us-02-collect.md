@@ -343,6 +343,29 @@ def dummy_user_id():
 
 ---
 
+## Melhorias implementadas (pós-spec)
+
+### Import paginado
+Arquivos grandes (>4.5MB) são divididos em chunks pelo frontend para respeitar o limite do Vercel:
+- `POST /collect/import` — cria a Collection com o primeiro batch (`done: false`)
+- `POST /collect/import-chunk` — appenda batches subsequentes (2000 comments/batch)
+- Último chunk envia `done: true` → marca `status = "completed"`
+- Frontend mostra barra de progresso durante o envio
+
+### Export streaming
+Exports usam `yield_per(500)` + `StreamingResponse` com geradores — nunca `.all()`.
+O download começa imediatamente, sem carregar todos os comentários na memória.
+
+### Retomada de coleta da lista
+Coletas interrompidas (`status = "running"`) exibem botão "Retomar" na tabela, permitindo
+restaurar como `active` sem depender do `sessionStorage`.
+
+### Simetria export/import
+O JSON exportado por `GET /collect/{id}/export?format=json` pode ser reimportado diretamente
+via `POST /collect/import` — formato idêntico, sem modificação.
+
+**Frontend:** tabs "Coletar via API" / "Importar JSON" na CollectPage.
+
 ## Dependências com outras USs
 
 - **US-03 (Limpeza):** usa o `collection_id` e os dados dos comentários (especialmente `author_channel_id`, `published_at`, `text_original`) para os algoritmos de seleção

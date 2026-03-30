@@ -416,6 +416,57 @@ def make_comments(users: dict[str, int]) -> list[Comment]:
 - Dummy: critérios e thresholds (irrelevantes — a validação ocorre antes)
 - Afirma HTTP 409
 
+## Melhorias implementadas (pós-spec)
+
+### Exclusão do autor do vídeo
+O `video_channel_id` da coleta é excluído automaticamente da análise — o autor do vídeo
+responde frequentemente, em rajada e com textos curtos, gerando falsos positivos em todos os critérios.
+
+### Critério `perfil` sem API key
+O critério `perfil` usa dados já coletados (`author_profile_image_url`, `author_channel_published_at`)
+em vez de chamar a YouTube API — sem necessidade de API key adicional.
+
+### União em vez de interseção
+Múltiplos critérios selecionados geram **união** (qualquer critério atendido), não interseção.
+Cada `DatasetEntry` registra em `matched_criteria` quais critérios específicos o usuário atendeu.
+
+### Streaming no download
+Exports CSV/JSON usam `yield_per(500)` + geradores streaming — sem carregar todos os comentários
+na memória. Compatível com o limite de 60s do Vercel Pro.
+
+### Import de dataset
+
+**Endpoint:** `POST /clean/import`
+
+Permite importar um dataset pré-curado. Aceita o **mesmo formato JSON** gerado pelo export
+(`GET /clean/datasets/{id}/download?format=json`) — simetria total:
+
+```json
+{
+  "dataset": {
+    "name": "nome_do_dataset",
+    "video_id": "dQw4w9WgXcQ",
+    "criteria_applied": ["percentil", "intervalo"]
+  },
+  "users": [
+    {
+      "author_channel_id": "UCxxx",
+      "author_display_name": "User",
+      "comment_count": 5,
+      "matched_criteria": ["percentil"]
+    }
+  ],
+  "comments": []
+}
+```
+
+- `video_id` resolve automaticamente para a coleta mais recente concluída desse vídeo
+- `comments` é aceito mas ignorado (os comentários já estão na coleta)
+- O nome do dataset deve ser único
+- Se não existir coleta para o `video_id`, retorna 404 com instrução para importar a coleta primeiro
+
+**Frontend:** aba "Importar JSON" na CleanPage, separada de "Criar via critérios" (padrão de tabs).
+
 ## Dependências com outras USs
 
 - **US-02:** requer `collection_id` com `status = "completed"`
