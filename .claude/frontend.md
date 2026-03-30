@@ -181,6 +181,40 @@ Toda página de US deve orientar o usuário em cada etapa do fluxo:
 </div>
 ```
 
+### Tabs de criação/import — obrigatório em toda US com import
+
+Toda página de US que permite importar dados deve ter **duas abas** no topo do conteúdo, separando os fluxos:
+
+```tsx
+<div className="flex gap-1 mb-4 border-b border-gray-200">
+  <button
+    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+      tab === "create"
+        ? "border-davint-400 text-davint-500"
+        : "border-transparent text-gray-500 hover:text-gray-700"
+    }`}
+    onClick={() => setTab("create")}
+  >
+    Criar via ...
+  </button>
+  <button
+    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+      tab === "import"
+        ? "border-davint-400 text-davint-500"
+        : "border-transparent text-gray-500 hover:text-gray-700"
+    }`}
+    onClick={() => setTab("import")}
+  >
+    Importar JSON
+  </button>
+</div>
+```
+
+- O import aceita o **mesmo formato JSON** gerado pelo export — simetria total
+- A aba de import inclui card explicativo com formato esperado (`bg-davint-50`)
+- Mensagens de erro/sucesso ficam **acima** das tabs (compartilhadas entre os fluxos)
+- A tabela de itens existentes fica **abaixo** das tabs (visível em ambas)
+
 ### O que NÃO deve ser repetido inline
 
 - Header `<header>` — sempre usar `<PageHeader>`

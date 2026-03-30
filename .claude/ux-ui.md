@@ -44,9 +44,10 @@
 
 ### 7. Flexibilidade e eficiência de uso
 
-- Tabs "Coletar via API" / "Importar JSON" para fluxos diferentes
-- Export em JSON (reimportável) e CSV (análise em Excel/Pandas)
+- Tabs separando criação e import em toda US que permite ambos (padrão obrigatório)
+- Export em JSON (reimportável — simetria total com import) e CSV (análise em Excel/Pandas)
 - Campo de vídeo aceita ID puro ou URL completa do YouTube
+- Import resolve referências automaticamente por `video_id` — sem exigir seleção manual de coleta
 
 ### 8. Design estético e minimalista
 
