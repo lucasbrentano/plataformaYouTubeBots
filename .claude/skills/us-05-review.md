@@ -341,6 +341,57 @@ def fake_db_with_conflict(fake_db):
 
 ---
 
+## Import/Export simétrico
+
+### Export — `GET /review/export`
+
+Exporta o dataset final (anotado + desempatado) — resultado final da pesquisa.
+
+**JSON (formato simétrico — aceito pelo import):**
+```json
+{
+  "dataset_name": "dQw4w9_percentil",
+  "video_id": "dQw4w9WgXcQ",
+  "exported_at": "2024-01-15T10:00:00Z",
+  "comments": [
+    {
+      "comment_db_id": "uuid",
+      "author_channel_id": "UC...",
+      "author_display_name": "string",
+      "text_original": "comentário...",
+      "final_label": "bot",
+      "annotations": [
+        {
+          "annotator": "João Silva",
+          "label": "bot",
+          "justificativa": "Texto repetido."
+        },
+        {
+          "annotator": "Maria Souza",
+          "label": "humano",
+          "justificativa": null
+        }
+      ],
+      "resolution": {
+        "resolved_by": "Carlos Admin",
+        "resolved_label": "bot",
+        "resolved_at": "2024-01-10T00:20:00Z"
+      }
+    }
+  ]
+}
+```
+
+O `final_label` é calculado: se há resolução, usa `resolved_label`; se há consenso, usa o label unânime.
+
+### Import — `POST /review/import`
+
+Aceita o **mesmo formato JSON** do export — simetria total.
+Reimporta um dataset já revisado (ex: migração entre ambientes ou restauração).
+Resolve referências por `video_id` + `dataset_name`.
+
+**Frontend:** aba "Importar JSON" na ReviewPage, separada das abas "Conflitos" / "Classificados como Bot" (padrão de tabs obrigatório).
+
 ## Dependências com outras USs
 
 - **US-04:** consome `AnnotationConflict` criados quando dois pesquisadores divergem

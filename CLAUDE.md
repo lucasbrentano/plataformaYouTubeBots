@@ -214,6 +214,25 @@ Arquivo `.github/dependabot.yml` configurado para:
 - API keys pessoais e intransferíveis — avisos obrigatórios em CollectPage, UsersPage e CreateUserModal
 - **Cards de instrução obrigatórios em páginas de US**: toda página de US deve orientar o usuário em cada etapa do fluxo — use `<StepsCard>` no estado inicial, notice `bg-davint-50` durante processamento ativo, banner `bg-yellow-50` para estados interrompidos, CTA claro ao concluir. Ver `.claude/frontend.md` § "Cards de instrução por etapa"
 
+## Import/Export de dados
+
+Todas as etapas do pipeline que produzem dados devem permitir **exportar** e **importar**:
+
+| Etapa | Export | Import |
+|-------|--------|--------|
+| US-02 · Coleta | `GET /collect/{id}/export?format=csv\|json` | `POST /collect/import` + `POST /collect/import-chunk` (paginado, 2000 comments/batch, limite Vercel 4.5MB) |
+| US-03 · Dataset | `GET /clean/datasets/{id}/download?format=csv\|json` | `POST /clean/import` (dataset pré-curado com usuários selecionados) |
+| US-04 · Anotação | Export do dataset com anotações (bot/humano + justificativa) | Import de anotações pré-existentes |
+| US-05 · Revisão | Export do dataset final (anotado + desempatado) — resultado final da pesquisa | Import de dataset já revisado/desempatado |
+
+### Regras obrigatórias
+
+- **Simetria export/import**: o formato de import deve ser **idêntico** ao formato de export — exportou um JSON, importa o mesmo JSON de volta sem modificação
+- **Streaming em exports**: usar `yield_per(500)` + geradores para não carregar todos os dados na memória. Sem `Content-Length` — o download começa imediatamente
+- **Import paginado**: arquivos grandes (>4.5MB) devem ser divididos em chunks pelo frontend (limite do Vercel)
+- **Tabs na UI**: toda página de US que possui import deve ter abas separadas ("Criar via ..." / "Importar JSON"), seguindo o padrão da CollectPage
+- **Resolução por video_id**: o import de etapas posteriores (US-03+) localiza a coleta pelo `video_id` do JSON — sem exigir seleção manual
+
 ## Regras de negócio críticas
 
 - Remoção de usuário é sempre **soft-delete** (`is_active = False`) — nunca DELETE físico, para preservar anotações de quem sai do laboratório
