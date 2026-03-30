@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
-from routers import auth, collect, users
+from routers import auth, clean, collect, users
 
 # Em produção, definir CORS_ORIGINS no Vercel Dashboard:
 #   CORS_ORIGINS=https://seu-frontend.vercel.app
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(collect.router)
+app.include_router(clean.router)
 
 
 @app.get("/health")
