@@ -9,9 +9,8 @@ Cria:
   - Bots postam em rajada (intervalos de 2–5min), humanos em dias diferentes
 
 Uso:
-  cd backend
-  source .venv/Scripts/activate
-  DATABASE_URL=postgresql://davint:davint@localhost:5432/davint python scripts/seed_mock_data.py
+  cd backend && source .venv/Scripts/activate
+  DATABASE_URL=...davint python scripts/seed_mock_data.py
 """
 
 import os
@@ -129,8 +128,7 @@ HUMAN_TEXTS = [
     "de texto para evitar detecção por comentários idênticos?",
     "Trabalho com moderação de conteúdo há 5 anos. A heurística de "
     "intervalo temporal é a mais eficaz na prática.",
-    "Obrigado pela resposta! Vou conferir o paper que você indicou no "
-    "minuto 12:30.",
+    "Obrigado pela resposta! Vou conferir o paper que você indicou no " "minuto 12:30.",
     "Interessante a abordagem de união de critérios. No meu mestrado "
     "estou usando interseção — vou testar a diferença.",
     "Faz sentido combinar múltiplas heurísticas. O percentil sozinho "
@@ -196,12 +194,16 @@ def seed():
         if existing:
             ds = db.query(Dataset).filter(Dataset.collection_id == existing.id).first()
             if ds:
-                print(f"Seed para '{VIDEO_ID}' ja existe (coleta={existing.id}, "
-                      f"dataset={ds.id}). Nada a fazer.")
+                print(
+                    f"Seed para '{VIDEO_ID}' ja existe (coleta={existing.id}, "
+                    f"dataset={ds.id}). Nada a fazer."
+                )
                 return
             collection = existing
-            print(f"Coleta para '{VIDEO_ID}' ja existe (id={existing.id}). "
-                  "Criando apenas o dataset.")
+            print(
+                f"Coleta para '{VIDEO_ID}' ja existe (id={existing.id}). "
+                "Criando apenas o dataset."
+            )
         else:
             admin = db.query(User).filter(User.role == "admin").first()
             if not admin:
@@ -292,9 +294,12 @@ def seed():
 
             collection.total_comments = comment_count
             db.flush()
-            print(f"  {comment_count} comentarios criados "
-                  f"({len([u for u in YOUTUBE_USERS if u[0].startswith('UCbot_')])} bots, "
-                  f"{len([u for u in YOUTUBE_USERS if u[0].startswith('UChum_')])} humanos)")
+            n_bots = len([u for u in YOUTUBE_USERS if u[0].startswith("UCbot_")])
+            n_hum = len(YOUTUBE_USERS) - n_bots
+            print(
+                f"  {comment_count} comentarios criados"
+                f" ({n_bots} bots, {n_hum} humanos)"
+            )
 
         # ─── Criar dataset (18 bots selecionados) ───────────────────────
         admin = db.query(User).filter(User.role == "admin").first()
@@ -305,7 +310,9 @@ def seed():
             print(f"Dataset '{dataset_name}' ja existe. Pulando.")
             return
 
-        bot_users = [(cid, name) for cid, name in YOUTUBE_USERS if cid.startswith("UCbot_")]
+        bot_users = [
+            (cid, name) for cid, name in YOUTUBE_USERS if cid.startswith("UCbot_")
+        ]
 
         dataset = Dataset(
             name=dataset_name,
@@ -348,8 +355,10 @@ def seed():
         print("Dados criados:")
         print(f"  Coleta: {VIDEO_ID} ({collection.total_comments} comentarios)")
         print(f"  Dataset: {dataset_name} ({len(bot_users)} usuarios suspeitos)")
-        print(f"  Usuarios totais: {len(YOUTUBE_USERS)} "
-              f"({len(bot_users)} bots + {len(YOUTUBE_USERS) - len(bot_users)} humanos)")
+        print(
+            f"  Usuarios totais: {len(YOUTUBE_USERS)} "
+            f"({len(bot_users)} bots + {len(YOUTUBE_USERS) - len(bot_users)} humanos)"
+        )
         print()
         print("Para testar:")
         print("  1. Logar como 'user' / 'user1234' e anotar comentarios")
