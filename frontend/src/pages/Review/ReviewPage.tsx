@@ -161,7 +161,7 @@ export function ReviewPage() {
             {
               label: "Exportar resultado",
               description:
-                "Após resolver os conflitos, exporte o dataset final revisado em JSON ou CSV.",
+                "Selecione um dataset no filtro para exportar o resultado em JSON ou CSV. É possível exportar mesmo com conflitos pendentes — comentários não resolvidos serão marcados como pendentes no arquivo.",
             },
           ]}
         />
