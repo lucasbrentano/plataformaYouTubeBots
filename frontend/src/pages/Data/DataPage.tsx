@@ -499,6 +499,23 @@ export function DataPage() {
   const [selectedAnn, setSelectedAnn] = useState<string | null>(null);
   const [selectedTraining, setSelectedTraining] = useState<string | null>(null);
 
+  // Fecha todos os painéis de outras seções ao abrir um novo
+  const closeAllPanels = () => {
+    setSelectedCol(null);
+    setSelectedDs(null);
+    setSelectedAnn(null);
+    setSelectedTraining(null);
+  };
+
+  const togglePanel = (current: string | null, id: string, setter: (v: string | null) => void) => {
+    if (current === id) {
+      setter(null);
+    } else {
+      closeAllPanels();
+      setter(id);
+    }
+  };
+
   const handleDelete = async (col: DataCollection) => {
     if (col.status === "running") {
       setActionError("Não é possível deletar uma coleta em andamento.");
@@ -633,9 +650,7 @@ export function DataPage() {
                             key={col.collection_id}
                             className={`cursor-pointer transition-colors ${selectedCol === col.collection_id ? "bg-davint-50" : "hover:bg-gray-50"}`}
                             onClick={() =>
-                              setSelectedCol(
-                                selectedCol === col.collection_id ? null : col.collection_id
-                              )
+                              togglePanel(selectedCol, col.collection_id, setSelectedCol)
                             }
                           >
                             <td className="py-2.5 pr-3">
@@ -703,9 +718,7 @@ export function DataPage() {
                           <tr
                             key={ds.dataset_id}
                             className={`cursor-pointer transition-colors ${selectedDs === ds.dataset_id ? "bg-davint-50" : "hover:bg-gray-50"}`}
-                            onClick={() =>
-                              setSelectedDs(selectedDs === ds.dataset_id ? null : ds.dataset_id)
-                            }
+                            onClick={() => togglePanel(selectedDs, ds.dataset_id, setSelectedDs)}
                           >
                             <td className="py-2.5 pr-3 text-xs font-medium text-gray-800">
                               {ds.name}
@@ -788,9 +801,7 @@ export function DataPage() {
                               key={ann.dataset_id}
                               className={`cursor-pointer transition-colors ${selectedAnn === ann.dataset_id ? "bg-davint-50" : "hover:bg-gray-50"}`}
                               onClick={() =>
-                                setSelectedAnn(
-                                  selectedAnn === ann.dataset_id ? null : ann.dataset_id
-                                )
+                                togglePanel(selectedAnn, ann.dataset_id, setSelectedAnn)
                               }
                             >
                               <td className="py-2.5 pr-3 text-xs font-medium text-gray-800">
@@ -870,9 +881,7 @@ export function DataPage() {
                             key={ds.dataset_id}
                             className={`cursor-pointer transition-colors ${selectedTraining === ds.dataset_id ? "bg-davint-50" : "hover:bg-gray-50"}`}
                             onClick={() =>
-                              setSelectedTraining(
-                                selectedTraining === ds.dataset_id ? null : ds.dataset_id
-                              )
+                              togglePanel(selectedTraining, ds.dataset_id, setSelectedTraining)
                             }
                           >
                             <td className="py-2.5 pr-3 text-xs font-medium text-gray-800">
